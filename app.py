@@ -67,14 +67,83 @@ app = Flask(__name__)
 # use decorators to link the function to a url
 @app.route('/')
 def home():
-    refresh_business_list(API_KEY, num_businesses=900)
+    if not os.path.isfile('restaurant_data.txt'):
+      refresh_business_list(API_KEY)
+
     businesses = retrieve_businesses_from_file()
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
-  # return render_template('choice.html', choice=chooseRandomRestaurant(retrieve_businesses_from_file()))
-  return jsonify(chooseRandomRestaurant(retrieve_businesses_from_file()))
+  if not os.path.isfile('restaurant_data.txt'):
+    refresh_business_list(API_KEY)
+
+  restaurant = chooseRandomRestaurant(retrieve_businesses_from_file())
+  ret = {
+    'attachments': [{
+      'fallback': restaurant.get('name'),
+      'color': '#9500c7',
+      'author_name': 'Lunch Spinner',
+      'title': restaurant.get('name'),
+      'title_link': restaurant.get('url'),
+      'image_url': restaurant.get('image_url'),
+      'fields': [
+        {
+          'title': 'Categories',
+          'value': ', '.join([category.get('title') for category in restaurant.get('categories')]),
+          'short': 'true',
+        },
+        {
+          'title': 'Address',
+          'value': restaurant.get('location').get('address1'),
+          'short': 'true',
+        },
+        {
+          'title': 'Rating',
+          'value': restaurant.get('rating'),
+          'short': 'true',
+        },
+        {
+          'title': 'Price',
+          'value': restaurant.get('price'),
+          'short': 'true',
+        },
+      ]
+    }]
+  }
+  return jsonify(ret)
+
+# @app.route('/test', methods=['POST'])
+# def test():
+#   return jsonify(
+#     {
+#     "attachments": [
+#         {
+#             "fallback": "Required plain-text summary of the attachment.",
+#             "color": "#36a64f",
+#             "pretext": "Optional text that appears above the attachment block",
+#             "author_name": "Bobby Tables",
+#             "author_link": "http://flickr.com/bobby/",
+#             "author_icon": "http://flickr.com/icons/bobby.jpg",
+#             "title": "Slack API Documentation",
+#             "title_link": "https://api.slack.com/",
+#             "text": "Optional text that appears within the attachment",
+#             "fields": [
+#                 {
+#                     "title": "Priority",
+#                     "value": "High",
+#                     "short": false
+#                 }
+#             ],
+#             "image_url": "http://my-website.com/path/to/image.jpg",
+#             "thumb_url": "http://example.com/path/to/thumb.png",
+#             "footer": "Slack API",
+#             "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
+#             "ts": 123456789
+#         }
+#     ]
+# }
+#   )
 
 @app.route('/welcome')
 def welcome():
