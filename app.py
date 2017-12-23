@@ -71,7 +71,7 @@ def home():
     businesses = retrieve_businesses_from_file()
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
-@app.route('/choice')
+@app.route('/choice', methods=['GET', 'POST'])
 def choose():
   # return render_template('choice.html', choice=chooseRandomRestaurant(retrieve_businesses_from_file()))
   return jsonify(chooseRandomRestaurant(retrieve_businesses_from_file()))
