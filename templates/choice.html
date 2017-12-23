@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Choice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div class="container">
+      <p><strong>CHOICE IS: </strong>{{choice.name}}</p>
+      <p>RATING: {{choice.rating}}</p>
+        {% for line in choice.location.display_address %}
+          {{line}}<br>
+        {% endfor %}
+    </div>
+  </body>
+</html>

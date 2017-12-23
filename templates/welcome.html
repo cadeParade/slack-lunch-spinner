@@ -9,6 +9,12 @@
       <h1>Welcome to Flask!</h2>
       <br>
       <p>Click <a href="/">here</a> to go home.</p>
+      <p><strong>CHOICE IS: </strong>{{choice.name}}</p>
+       {% for restaurant in data %}
+          <p>
+           {{loop.index}} - {{restaurant.name}}
+          </p>
+       {% endfor %}
     </div>
   </body>
 </html>
