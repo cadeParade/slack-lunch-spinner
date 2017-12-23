@@ -24,6 +24,7 @@ import sys
 import urllib
 import random
 import os
+from flask import jsonify
 
 # This client code can run on Python 2.x or 3.x.  Your imports can be
 # simpler if you only need one of those.
@@ -66,25 +67,18 @@ app = Flask(__name__)
 # use decorators to link the function to a url
 @app.route('/')
 def home():
-    # refresh_business_list(API_KEY, num_businesses= 950)
-    # filter_by_distance(900)
-    businesses = retrieve_close_businesses_from_file()
+    refresh_business_list(API_KEY, num_businesses=900)
+    businesses = retrieve_businesses_from_file()
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
 @app.route('/choice')
 def choose():
-  return render_template('choice.html', choice=chooseRandomRestaurant(retrieve_close_businesses_from_file()))
+  # return render_template('choice.html', choice=chooseRandomRestaurant(retrieve_businesses_from_file()))
+  return jsonify(chooseRandomRestaurant(retrieve_businesses_from_file()))
 
 @app.route('/welcome')
 def welcome():
     return render_template('welcome.html')  # render a template
-
-def filter_by_distance(distance_in_meters=900):
-  data = retrieve_businesses_from_file()
-  filtered_data = list(filter(lambda restaurant: restaurant['distance'] < distance_in_meters, data))
-  with open('close_restaurants.txt', 'w') as outfile:
-    json.dump(filtered_data, outfile)
-
 
 
 def chooseRandomRestaurant(businesses):
@@ -126,7 +120,7 @@ def retrieve_businesses_from_file():
     return data
 
 
-def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855, num_businesses=200):
+def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855, distance=900, price='1,2', num_businesses=200):
 # def search(api_key):
 # def search(api_key, term, location):
     """Query the Search API by a search term and location.
@@ -141,7 +135,9 @@ def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855,
         'term': term.replace(' ', '+'),
         'latitude': lat,
         'longitude': lon,
-        'limit': SEARCH_LIMIT
+        'limit': SEARCH_LIMIT,
+        'radius': distance,
+        'price': price
     }
 
     businesses = []
@@ -166,8 +162,6 @@ def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855,
 
     with open('restaurant_data.txt', 'w') as outfile:
       json.dump(businesses, outfile)
-
-    filter_by_distance()
 
 
 

@@ -12,7 +12,7 @@
       <p><strong>CHOICE IS: </strong>{{choice.name}}</p>
        {% for restaurant in data %}
           <p>
-           {{loop.index}} - {{restaurant.name}}
+           {{loop.index}} - {{restaurant.name}} -- {{restaurant.price}} -- {{restaurant.distance}} -- {{restaurant.rating}}
           </p>
        {% endfor %}
     </div>
