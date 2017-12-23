@@ -108,7 +108,17 @@ def choose():
           'value': restaurant.get('price'),
           'short': 'true',
         },
-      ]
+      ],
+      'actions': [
+        {
+          "name": "repeat",
+          "text": "Spin again",
+          "type": "button",
+          "value": "repeat",
+        }
+      ],
+      'callback_id': 'lunch-spinner',
+      'replace_original': 'true'
     }]
   }
   return jsonify(ret)
