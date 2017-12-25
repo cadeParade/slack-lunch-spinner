@@ -123,47 +123,11 @@ def choose():
   }
   return jsonify(ret)
 
-# @app.route('/test', methods=['POST'])
-# def test():
-#   return jsonify(
-#     {
-#     "attachments": [
-#         {
-#             "fallback": "Required plain-text summary of the attachment.",
-#             "color": "#36a64f",
-#             "pretext": "Optional text that appears above the attachment block",
-#             "author_name": "Bobby Tables",
-#             "author_link": "http://flickr.com/bobby/",
-#             "author_icon": "http://flickr.com/icons/bobby.jpg",
-#             "title": "Slack API Documentation",
-#             "title_link": "https://api.slack.com/",
-#             "text": "Optional text that appears within the attachment",
-#             "fields": [
-#                 {
-#                     "title": "Priority",
-#                     "value": "High",
-#                     "short": false
-#                 }
-#             ],
-#             "image_url": "http://my-website.com/path/to/image.jpg",
-#             "thumb_url": "http://example.com/path/to/thumb.png",
-#             "footer": "Slack API",
-#             "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
-#             "ts": 123456789
-#         }
-#     ]
-# }
-#   )
-
-@app.route('/welcome')
-def welcome():
-    return render_template('welcome.html')  # render a template
-
 
 def chooseRandomRestaurant(businesses):
   return random.choice(businesses)
 
-def request(host, path, api_key, url_params=None):
+def yelp_request(host, path, api_key, url_params=None):
     """Given your API_KEY, send a GET request to the API.
     Args:
         host (str): The domain host of the API.
@@ -210,6 +174,8 @@ def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855,
         dict: The JSON response from the request.
     """
 
+
+    # TODO: make first request, then see how many yelp returns then make that many requests
     url_params = {
         'term': term.replace(' ', '+'),
         'latitude': lat,
@@ -231,13 +197,13 @@ def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855,
       else:
         url_params['offset'] = n * 50 + 1
 
-      l = request(API_HOST, SEARCH_PATH, api_key, url_params=url_params)
+      l = yelp_request(API_HOST, SEARCH_PATH, api_key, url_params=url_params)
       businesses.extend(l.get('businesses'))
 
     if leftovers:
       url_params['limit'] = leftovers
       url_params['offset'] = full_requests * 50 + 1
-      businesses.extend(request(API_HOST, SEARCH_PATH, api_key, url_params=url_params).get('businesses'))
+      businesses.extend(yelp_request(API_HOST, SEARCH_PATH, api_key, url_params=url_params).get('businesses'))
 
     with open('restaurant_data.txt', 'w') as outfile:
       json.dump(businesses, outfile)
