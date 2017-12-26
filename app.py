@@ -21,7 +21,7 @@ app = Flask(__name__)
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
-  channel_id = form_data.get('channel_id')
+  channel_id = form_data.get('channel_id') or json.loads(form_data.get('payload'))['channel']['id']
   team_id = form_data.get('team_id')
 
   form_text = form_data.get('text')
@@ -38,7 +38,6 @@ def choose():
 
       return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
 
-  # TODO: make this work with "spin again" -- channel id does not come through the same way in second response :/
   channel = db.get_channel(channel_id)
 
   if not channel:
