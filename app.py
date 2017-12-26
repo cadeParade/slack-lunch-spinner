@@ -7,6 +7,7 @@ import random
 import os
 import pyrebase
 from yelp_requests import refresh_business_list, yelp_request
+from lunch_settings import get_valid_settings
 
 config = {
   "apiKey": os.getenv('FIREBASE_LUNCH_API_KEY'),
@@ -58,44 +59,6 @@ def home():
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
 
-def is_txt_float(txt):
-  try:
-    float(txt)
-  except Exception as e:
-    return False
-  else:
-    return True
-
-def is_txt_int(txt):
-  try:
-    int(txt)
-  except Exception as e:
-    return False
-  else:
-    return True
-
-def is_valid_value(key, value):
-  if key == 'lat' or key == 'lon':
-    return is_txt_float(value)
-  elif key == 'radius':
-    return is_txt_int(value)
-  else:
-    return False
-
-# valid txt should be in the format ex: lat=20394
-def text_is_valid(txt):
-  ALLOWED_PARAMS = ['lat', 'lon', 'radius']
-  split_txt = txt.split('=')
-  if len(split_txt) != 2:
-    return False
-  if split_txt[0] not in ALLOWED_PARAMS:
-    return False
-  if not is_valid_value(split_txt[0], split_txt[1]):
-    return False
-
-  return True
-
-
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
@@ -110,15 +73,10 @@ def choose():
     return 'Your lunch-spinner preferences are %s' % (str(get_preferences(channel_id).items()))
 
   elif form_text[0] == 'setup':
-    valid_settings = list(filter(text_is_valid, form_text))
-    settings = {}
-    for setting in valid_settings:
-      split_setting = setting.split('=')
-      settings[split_setting[0]] = split_setting[1]
+    new_valid_settings = get_valid_settings(form_text)
+    all_settings = addSettings(channel_id, new_valid_settings)
 
-    all_settings = addSettings(channel_id, settings)
-
-    return "We've set your preference to %s \n Your settings are now: %s" % (settings, all_settings)
+    return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
 
 
   if not channel.val():
