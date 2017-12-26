@@ -7,8 +7,7 @@ import random
 import os
 from yelp_requests import refresh_business_list, yelp_request
 from lunch_settings import get_valid_settings
-from db import get_preferences, set_preferences, add_channel, add_settings, get_channel
-
+import db
 
 # user sends request
 # if so, check if channel exists AND has preferences
@@ -25,22 +24,25 @@ def choose():
   channel_id = form_data.get('channel_id')
   team_id = form_data.get('team_id')
 
-  form_text = form_data.get('text').split(' ')
+  form_text = form_data.get('text')
+  if form_text:
+    form_text = form_text.split(' ')
 
-  if form_text[0] == 'preferences':
-    # TODO: format this in a nice way (get ordered dict out)
-    return 'Your lunch-spinner preferences are %s' % (str(get_preferences(channel_id).items()))
+    if form_text[0] == 'preferences':
+      # TODO: format this in a nice way (get ordered dict out)
+      return 'Your lunch-spinner preferences are %s' % (str(db.get_preferences(channel_id).items()))
 
-  elif form_text[0] == 'setup':
-    new_valid_settings = get_valid_settings(form_text)
-    all_settings = add_settings(channel_id, new_valid_settings)
+    elif form_text[0] == 'setup':
+      new_valid_settings = get_valid_settings(form_text)
+      all_settings = db.add_settings(channel_id, new_valid_settings)
 
-    return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
+      return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
 
-  channel = get_channel(channel_id)
+  # TODO: make this work with "spin again" -- channel id does not come through the same way in second response :/
+  channel = db.get_channel(channel_id)
 
   if not channel:
-    add_channel(channel_id, team_id)
+    db.add_channel(channel_id, team_id)
     return ("It looks like you haven't used lunch-spinner before in this channel.\n" +
         "We need to set up some preferences. These preferences will be used for any lunch request in this channel.\n"
         "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
