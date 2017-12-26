@@ -90,6 +90,44 @@ def home():
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
 
+def is_txt_float(txt):
+  try:
+    float(txt)
+  except Exception as e:
+    return False
+  else:
+    return True
+
+def is_txt_int(txt):
+  try:
+    int(txt)
+  except Exception as e:
+    return False
+  else:
+    return True
+
+def is_valid_value(key, value):
+  if key == 'lat' or key == 'lon':
+    return is_txt_float(value)
+  elif key == 'radius':
+    return is_txt_int(value)
+  else:
+    return False
+
+# valid txt should be in the format ex: lat=20394
+def text_is_valid(txt):
+  ALLOWED_PARAMS = ['lat', 'lon', 'radius']
+  split_txt = txt.split('=')
+  if len(split_txt) != 2:
+    return False
+  if split_txt[0] not in ALLOWED_PARAMS:
+    return False
+  if not is_valid_value(split_txt[0], split_txt[1]):
+    return False
+
+  return True
+
+
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
@@ -97,22 +135,30 @@ def choose():
   team_id = form_data.get('team_id')
   channel = db.child('channels').child(channel_id).get()
 
-  if form_data.get('text') == 'preferences':
-    # TODO: return actual preferences
-    return jsonify('Your preferences are something')
+  form_text = form_data.get('text').split(' ')
+
+  if form_text[0] == 'preferences':
+    # TODO: format this in a nice way (get ordered dict out)
+    return 'Your lunch-spinner preferences are %s' % (str(get_preferences(channel_id).items()))
+
+  elif form_text[0] == 'setup':
+    valid_settings = list(filter(text_is_valid, form_text))
+    settings = {}
+    for setting in valid_settings:
+      split_setting = setting.split('=')
+      settings[split_setting[0]] = split_setting[1]
+
+    all_settings = addSettings(channel_id, settings)
+
+    return "We've set your preference to %s \n Your settings are now: %s" % (settings, all_settings)
+
 
   if not channel.val():
     addChannel(channel_id, team_id)
-    return ("It looks like you haven't used lunch-spinner before in this channel." +
-        "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n *Price* (Optional: default is $ and $$)" +
-        "To enter preferences, type `/lunch lat=23432 lon=20394 radius=500` .. etc")
-        # 'latitude': lat,
-        # 'longitude': lon,
-        # 'limit': SEARCH_LIMIT,
-        # 'radius': distance,
-        # 'price': price
-
-    # go to prompt to set preferences
+    return ("It looks like you haven't used lunch-spinner before in this channel.\n" +
+        "We need to set up some preferences. These preferences will be used for any lunch request in this channel.\n"
+        "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
+        "To enter preferences, type `/lunch setup lat=23432 lon=20394 radius=500` .. etc")
 
   if not os.path.isfile('restaurant_data.txt'):
     refresh_business_list(API_KEY)
@@ -122,12 +168,29 @@ def choose():
   return jsonify(build_slack_response(restaurant))
 
 
+def get_preferences(channel_id):
+  return db.child('channels').child(channel_id).child('preferences').get().val()
+
+def set_preferences(channel_id, preferences):
+  db.child("channels").child(channel_id).child('preferences').set(preferences)
+
+
 def addChannel(channel_id, team_id):
   db.child('channels').child(channel_id).set({'team_id': team_id})
-  # db.child("channels").child(channel_id).child('preferences').set({'foo':'bar'})
+
+def addSettings(channel_id, settings):
+  prev_preferences = get_preferences(channel_id)
+
+  # merge old and new preferences
+  # new takes precedence
+  new_preferences = {}
+  new_preferences.update(prev_preferences)
+  new_preferences.update(settings)
+
+  set_preferences(channel_id, new_preferences)
+  return new_preferences
 
 
-# def setPreferences(channel_id):
 
 
 def chooseRandomRestaurant(businesses):
