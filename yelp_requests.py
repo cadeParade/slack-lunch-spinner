@@ -12,6 +12,7 @@ Sample usage of the program:
 `python sample.py --term="bars" --location="San Francisco, CA"`
 """
 
+import os
 import urllib
 
 # This client code can run on Python 2.x or 3.x.  Your imports can be
@@ -27,7 +28,29 @@ except ImportError:
     from urllib import quote
     from urllib import urlencode
 
-def yelp_request(host, path, api_key, url_params=None):
+
+# Yelp Fusion no longer uses OAuth as of December 7, 2017.
+# You no longer need to provide Client ID to fetch Data
+# It now uses private keys to authenticate requests (API Key)
+# You can find it on
+# https://www.yelp.com/developers/v3/manage_app
+YELP_API_KEY = os.getenv('YELP_LUNCH_SPINNER_API_KEY')
+
+
+# API constants, you shouldn't have to change these.
+YELP_API_HOST = 'https://api.yelp.com'
+SEARCH_PATH = '/v3/businesses/search'
+BUSINESS_PATH = '/v3/businesses/'  # Business ID will come after slash.
+
+
+# Defaults for our simple example.
+DEFAULT_TERM = 'dinner'
+DEFAULT_LOCATION = 'San Francisco, CA'
+SEARCH_LIMIT = 50
+
+
+
+def yelp_request(host, path, url_params=None):
     """Given your API_KEY, send a GET request to the API.
     Args:
         host (str): The domain host of the API.
@@ -42,7 +65,7 @@ def yelp_request(host, path, api_key, url_params=None):
     url_params = url_params or {}
     url = '{0}{1}'.format(host, quote(path.encode('utf8')))
     headers = {
-        'Authorization': 'Bearer %s' % api_key,
+        'Authorization': 'Bearer %s' % YELP_API_KEY,
     }
 
     print(u'Querying {0} ...'.format(url))
@@ -51,9 +74,8 @@ def yelp_request(host, path, api_key, url_params=None):
     print (response.status_code)
     return response.json()
 
-def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855, distance=900, price='1,2', num_businesses=200):
-# def search(api_key):
-# def search(api_key, term, location):
+
+def refresh_business_list(term='lunch', lat=37.788440, lon=-122.399855, distance=900, price='1,2', num_businesses=200):
     """Query the Search API by a search term and location.
     Args:
         term (str): The search term passed to the API.
@@ -85,13 +107,13 @@ def refresh_business_list(api_key, term='lunch', lat=37.788440, lon=-122.399855,
       else:
         url_params['offset'] = n * 50 + 1
 
-      l = yelp_request(API_HOST, SEARCH_PATH, api_key, url_params=url_params)
+      l = yelp_request(API_HOST, SEARCH_PATH, url_params=url_params)
       businesses.extend(l.get('businesses'))
 
     if leftovers:
       url_params['limit'] = leftovers
       url_params['offset'] = full_requests * 50 + 1
-      businesses.extend(yelp_request(API_HOST, SEARCH_PATH, api_key, url_params=url_params).get('businesses'))
+      businesses.extend(yelp_request(API_HOST, SEARCH_PATH, url_params=url_params).get('businesses'))
 
     with open('restaurant_data.txt', 'w') as outfile:
       json.dump(businesses, outfile)

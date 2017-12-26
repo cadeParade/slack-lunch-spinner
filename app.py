@@ -5,39 +5,9 @@ import json
 import requests
 import random
 import os
-import pyrebase
 from yelp_requests import refresh_business_list, yelp_request
 from lunch_settings import get_valid_settings
-
-config = {
-  "apiKey": os.getenv('FIREBASE_LUNCH_API_KEY'),
-  "authDomain": "lunch-spinner.firebaseapp.com",
-  "databaseURL": "https://lunch-spinner.firebaseio.com/",
-  "storageBucket": "lunch-spinner.appspot.com"
-}
-
-firebase = pyrebase.initialize_app(config)
-db = firebase.database()
-
-
-# Yelp Fusion no longer uses OAuth as of December 7, 2017.
-# You no longer need to provide Client ID to fetch Data
-# It now uses private keys to authenticate requests (API Key)
-# You can find it on
-# https://www.yelp.com/developers/v3/manage_app
-API_KEY = os.getenv('YELP_LUNCH_SPINNER_API_KEY')
-
-
-# API constants, you shouldn't have to change these.
-API_HOST = 'https://api.yelp.com'
-SEARCH_PATH = '/v3/businesses/search'
-BUSINESS_PATH = '/v3/businesses/'  # Business ID will come after slash.
-
-
-# Defaults for our simple example.
-DEFAULT_TERM = 'dinner'
-DEFAULT_LOCATION = 'San Francisco, CA'
-SEARCH_LIMIT = 50
+from db import get_preferences, set_preferences, add_channel, add_settings, get_channel
 
 
 # user sends request
@@ -49,22 +19,11 @@ SEARCH_LIMIT = 50
 # create the application object
 app = Flask(__name__)
 
-# use decorators to link the function to a url
-@app.route('/')
-def home():
-    if not os.path.isfile('restaurant_data.txt'):
-      refresh_business_list(API_KEY)
-
-    businesses = retrieve_businesses_from_file()
-    return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
-
-
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
   channel_id = form_data.get('channel_id')
   team_id = form_data.get('team_id')
-  channel = db.child('channels').child(channel_id).get()
 
   form_text = form_data.get('text').split(' ')
 
@@ -74,48 +33,25 @@ def choose():
 
   elif form_text[0] == 'setup':
     new_valid_settings = get_valid_settings(form_text)
-    all_settings = addSettings(channel_id, new_valid_settings)
+    all_settings = add_settings(channel_id, new_valid_settings)
 
     return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
 
+  channel = get_channel(channel_id)
 
-  if not channel.val():
-    addChannel(channel_id, team_id)
+  if not channel:
+    add_channel(channel_id, team_id)
     return ("It looks like you haven't used lunch-spinner before in this channel.\n" +
         "We need to set up some preferences. These preferences will be used for any lunch request in this channel.\n"
         "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
         "To enter preferences, type `/lunch setup lat=23432 lon=20394 radius=500` .. etc")
 
   if not os.path.isfile('restaurant_data.txt'):
-    refresh_business_list(API_KEY)
+    refresh_business_list()
 
   restaurant = chooseRandomRestaurant(retrieve_businesses_from_file())
 
   return jsonify(build_slack_response(restaurant))
-
-
-def get_preferences(channel_id):
-  return db.child('channels').child(channel_id).child('preferences').get().val()
-
-def set_preferences(channel_id, preferences):
-  db.child("channels").child(channel_id).child('preferences').set(preferences)
-
-
-def addChannel(channel_id, team_id):
-  db.child('channels').child(channel_id).set({'team_id': team_id})
-
-def addSettings(channel_id, settings):
-  prev_preferences = get_preferences(channel_id)
-
-  # merge old and new preferences
-  # new takes precedence
-  new_preferences = {}
-  new_preferences.update(prev_preferences)
-  new_preferences.update(settings)
-
-  set_preferences(channel_id, new_preferences)
-  return new_preferences
-
 
 
 
