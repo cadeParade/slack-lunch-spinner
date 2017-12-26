@@ -24,8 +24,19 @@ import sys
 import urllib
 import random
 import os
-from flask import jsonify
+from flask import jsonify, request
+from yelp_requests import refresh_business_list, yelp_request
+import pyrebase
 
+config = {
+  "apiKey": os.getenv('FIREBASE_LUNCH_API_KEY'),
+  "authDomain": "lunch-spinner.firebaseapp.com",
+  "databaseURL": "https://lunch-spinner.firebaseio.com/",
+  "storageBucket": "lunch-spinner.appspot.com"
+}
+
+firebase = pyrebase.initialize_app(config)
+db = firebase.database()
 # This client code can run on Python 2.x or 3.x.  Your imports can be
 # simpler if you only need one of those.
 try:
@@ -60,6 +71,11 @@ DEFAULT_LOCATION = 'San Francisco, CA'
 SEARCH_LIMIT = 50
 
 
+# user sends request
+# if so, check if channel exists AND has preferences
+# if no, add channel to db and prompt them to set preferences
+# if yes, do the choice with channel's preferences
+
 
 # create the application object
 app = Flask(__name__)
@@ -73,8 +89,22 @@ def home():
     businesses = retrieve_businesses_from_file()
     return render_template('welcome.html', choice=chooseRandomRestaurant(businesses), data=businesses)
 
+
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
+  form_data = request.form
+  channel_id = form_data.get('channel_id')
+  team_id = form_data.get('team_id')
+  channel = db.child('channels').child(channel_id).get()
+
+  if not channel.val():
+    addChannel(channel_id, team_id)
+    print("IN IF", channel_id)
+    return jsonify('It looks like you haven\'t used lunch-spinner before in this channel.' +
+      'Do some things to set up lunch-spinner for this channel')
+    # go to prompt to set preferences
+
+
   if not os.path.isfile('restaurant_data.txt'):
     refresh_business_list(API_KEY)
 
@@ -122,6 +152,9 @@ def choose():
     }]
   }
   return jsonify(ret)
+
+def addChannel(channel_id, team_id):
+  db.child("channels").child(channel_id).set({'team_id': team_id})
 
 
 def chooseRandomRestaurant(businesses):
