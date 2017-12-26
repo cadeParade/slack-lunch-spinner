@@ -97,19 +97,56 @@ def choose():
   team_id = form_data.get('team_id')
   channel = db.child('channels').child(channel_id).get()
 
+  if form_data.get('text') == 'preferences':
+    # TODO: return actual preferences
+    return jsonify('Your preferences are something')
+
   if not channel.val():
     addChannel(channel_id, team_id)
-    print("IN IF", channel_id)
-    return jsonify('It looks like you haven\'t used lunch-spinner before in this channel.' +
-      'Do some things to set up lunch-spinner for this channel')
-    # go to prompt to set preferences
+    return ("It looks like you haven't used lunch-spinner before in this channel." +
+        "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n *Price* (Optional: default is $ and $$)" +
+        "To enter preferences, type `/lunch lat=23432 lon=20394 radius=500` .. etc")
+        # 'latitude': lat,
+        # 'longitude': lon,
+        # 'limit': SEARCH_LIMIT,
+        # 'radius': distance,
+        # 'price': price
 
+    # go to prompt to set preferences
 
   if not os.path.isfile('restaurant_data.txt'):
     refresh_business_list(API_KEY)
 
   restaurant = chooseRandomRestaurant(retrieve_businesses_from_file())
-  ret = {
+
+  return jsonify(build_slack_response(restaurant))
+
+
+def addChannel(channel_id, team_id):
+  db.child('channels').child(channel_id).set({'team_id': team_id})
+  # db.child("channels").child(channel_id).child('preferences').set({'foo':'bar'})
+
+
+# def setPreferences(channel_id):
+
+
+def chooseRandomRestaurant(businesses):
+  return random.choice(businesses)
+
+
+def retrieve_close_businesses_from_file():
+    json_data=open('close_restaurants.txt').read()
+    data = json.loads(json_data)
+    return data
+
+
+def retrieve_businesses_from_file():
+    json_data=open('restaurant_data.txt').read()
+    data = json.loads(json_data)
+    return data
+
+def build_slack_response(restaurant):
+  return {
     'attachments': [{
       'fallback': restaurant.get('name'),
       'color': '#9500c7',
@@ -151,26 +188,6 @@ def choose():
       'replace_original': 'true'
     }]
   }
-  return jsonify(ret)
-
-def addChannel(channel_id, team_id):
-  db.child("channels").child(channel_id).set({'team_id': team_id})
-
-
-def chooseRandomRestaurant(businesses):
-  return random.choice(businesses)
-
-
-def retrieve_close_businesses_from_file():
-    json_data=open('close_restaurants.txt').read()
-    data = json.loads(json_data)
-    return data
-
-
-def retrieve_businesses_from_file():
-    json_data=open('restaurant_data.txt').read()
-    data = json.loads(json_data)
-    return data
 
 
 
