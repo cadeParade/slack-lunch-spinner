@@ -14,6 +14,8 @@ Sample usage of the program:
 
 import os
 import urllib
+import requests
+import json
 
 # This client code can run on Python 2.x or 3.x.  Your imports can be
 # simpler if you only need one of those.
@@ -75,7 +77,7 @@ def yelp_request(host, path, url_params=None):
     return response.json()
 
 
-def refresh_business_list(term='lunch', lat=37.788440, lon=-122.399855, distance=900, price='1,2', num_businesses=200):
+def refresh_business_list(preferences):
     """Query the Search API by a search term and location.
     Args:
         term (str): The search term passed to the API.
@@ -87,36 +89,46 @@ def refresh_business_list(term='lunch', lat=37.788440, lon=-122.399855, distance
 
     # TODO: make first request, then see how many yelp returns then make that many requests
     url_params = {
-        'term': term.replace(' ', '+'),
-        'latitude': lat,
-        'longitude': lon,
-        'limit': SEARCH_LIMIT,
-        'radius': distance,
-        'price': price
+      'term': 'lunch',
+      'price': '1,2',
+      'limit': 1,
+      'latitude': float(preferences['lat']),
+      'longitude': float(preferences['lon']),
+      'radius': int(preferences['radius']) or 800,
     }
 
     businesses = []
 
-    x = divmod(num_businesses, 50)
+    initial_query = yelp_request(YELP_API_HOST, SEARCH_PATH, url_params=url_params)
+    num_businesses = initial_query['total']
+
+    x = divmod(num_businesses, SEARCH_LIMIT)
     full_requests = x[0]
     leftovers = x[1]
 
+
+    url_params['limit'] = SEARCH_LIMIT
     for n in range(0, full_requests):
       if n == 0:
         url_params['offset'] = 0
       else:
-        url_params['offset'] = n * 50 + 1
+        url_params['offset'] = n * SEARCH_LIMIT
 
-      l = yelp_request(API_HOST, SEARCH_PATH, url_params=url_params)
+      l = yelp_request(YELP_API_HOST, SEARCH_PATH, url_params=url_params)
       businesses.extend(l.get('businesses'))
 
     if leftovers:
-      url_params['limit'] = leftovers
-      url_params['offset'] = full_requests * 50 + 1
-      businesses.extend(yelp_request(API_HOST, SEARCH_PATH, url_params=url_params).get('businesses'))
+      url_params['offset'] = full_requests * SEARCH_LIMIT
+      businesses.extend(yelp_request(YELP_API_HOST, SEARCH_PATH, url_params=url_params).get('businesses'))
 
-    with open('restaurant_data.txt', 'w') as outfile:
-      json.dump(businesses, outfile)
+
+    business_dict = {}
+    for business in businesses:
+      business_dict[business['id']] = business
+
+    return business_dict
+    # with open('restaurant_data.txt', 'w') as outfile:
+    #   json.dump(businesses, outfile)
 
 
 

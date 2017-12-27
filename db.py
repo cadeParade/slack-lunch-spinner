@@ -24,6 +24,12 @@ def add_channel(channel_id, team_id):
 def get_channel(channel_id):
   return db.child('channels').child(channel_id).get().val()
 
+def get_restaurants(channel_id):
+  return db.child('channels').child(channel_id).child('restaurants').get().val();
+
+def set_restaurants(channel_id, restaurants):
+  return db.child('channels').child(channel_id).child('restaurants').set(restaurants);
+
 
 # TODO name this better
 def add_settings(channel_id, settings):

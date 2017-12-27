@@ -8,7 +8,7 @@ ALLOWED_PARAMS = [
 ]
 
 # valid txt should be in the format ex: lat=20394
-def get_valid_settings(settings):
+def parse_valid_settings(settings):
   # only continue with settings strings that are valid
   valid_settings = _filter_valid_settings(settings)
 
