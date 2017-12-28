@@ -10,11 +10,15 @@ import db
 
 app = Flask(__name__)
 
+FAVORITE_ACTION_NAME = 'favorite'
+DISLIKE_ACTION_NAME = 'blacklist'
+
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
   channel_id = form_data.get('channel_id') or json.loads(form_data.get('payload'))['channel']['id']
   channel = db.get_channel(channel_id)
+
 
   if not channel:
     return add_channel(channel_id, form_data.get('team_id'))
@@ -23,13 +27,66 @@ def choose():
   if args:
     return parse_args(channel_id, args)
 
+  if is_favorite_action(form_data):
+    restaurant_id = get_restaurant_id_from_payload(form_data)
+    db.set_favorite(channel_id, restaurant_id)
+    return "Ok, %s will come up more often in the future" % (restaurant_id)
+  elif is_dislike_action(form_data):
+    restaurant_id = get_restaurant_id_from_payload(form_data)
+    db.set_dislike(channel_id, restaurant_id)
+    return "Ok, %s will not come up again" % (restaurant_id)
+
+
+  # TODO: load restaurants in a way that user doesn't get timeout for first query
   if not db.get_restaurants(channel_id):
     get_restaurants(channel_id)
 
-  restaurant = choose_random_restaurant(db.get_restaurants(channel_id))
+  businesses = db.get_restaurants(channel_id)
+  filtered_restaurant_ids = filter_and_enrich_business_list(channel_id, businesses)
+  restaurant_id = choose_random_restaurant_id(filtered_restaurant_ids)
+  restaurant = businesses.get(restaurant_id)
 
   return jsonify(build_slack_response(restaurant))
 
+
+def filter_and_enrich_business_list(channel_id, businesses):
+  restaurant_preferences = db.get_restaurant_preferences(channel_id)
+  enriched_restaurant_ids = []
+  for k,v in restaurant_preferences.items():
+    if v == -1:
+      businesses.pop(k, None)
+    elif v == 1:
+      enriched_restaurant_ids.extend([k] * 5)
+
+  # import pdb;pdb.set_trace()
+  enriched_restaurant_ids.extend(list(dict(businesses).keys()))
+
+  return enriched_restaurant_ids
+
+
+def get_restaurant_id_from_payload(form_data):
+  return json.loads(form_data.get('payload'))['actions'][0]['value']
+
+def add_favorite(channel_id, restaurant_id):
+  restaurant_id = get_restaurant_id_from_payload(form_data)
+  db.set_favorite(channel_id, restaurant_id)
+
+def add_dislike(channel_id, restaurant_id):
+  restaurant_id = get_restaurant_id_from_payload(form_data)
+  db.set_dislike(channel_id, restaurant_id)
+
+
+def is_favorite_action(form_data):
+  return (
+    form_data.get('payload') and
+    json.loads(form_data.get('payload'))['actions'][0]['name'] == FAVORITE_ACTION_NAME
+  )
+
+def is_dislike_action(form_data):
+  return (
+    form_data.get('payload') and
+    json.loads(form_data.get('payload'))['actions'][0]['name'] == DISLIKE_ACTION_NAME
+  )
 
 def parse_args(channel_id, args):
   args = args.split(' ')
@@ -40,9 +97,12 @@ def parse_args(channel_id, args):
 
   elif args[0] == 'setup':
     new_valid_settings = parse_valid_settings(args)
-    all_settings = db.add_settings(channel_id, new_valid_settings)
+    all_settings = db.set_preferences(channel_id, new_valid_settings)
 
-    return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
+    # TODO: reload restaurants upon settings change
+    # get_restaurants(channel_id)
+
+    return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, db.get_preferences(channel_id))
 
 
 def add_channel(channel_id, team_id):
@@ -58,9 +118,9 @@ def get_restaurants(channel_id):
   businesses = refresh_business_list(db.get_preferences(channel_id))
   db.set_restaurants(channel_id, businesses)
 
-def choose_random_restaurant(businesses):
-  restaurant_id = random.choice(list(dict(businesses).keys()))
-  return businesses[restaurant_id]
+def choose_random_restaurant_id(business_ids):
+  return random.choice(business_ids)
+
 
 def build_slack_response(restaurant):
   return {
@@ -72,6 +132,7 @@ def build_slack_response(restaurant):
       'title': restaurant.get('name'),
       'title_link': restaurant.get('url'),
       'image_url': restaurant.get('image_url'),
+      'restaurant_id': restaurant.get('id'),
       'fields': [
         {
           'title': 'Categories',
@@ -100,7 +161,19 @@ def build_slack_response(restaurant):
           "text": "Spin again",
           "type": "button",
           "value": "repeat",
-        }
+        },
+        {
+          "name": FAVORITE_ACTION_NAME,
+          "text": "LOVE!!!",
+          "type": "button",
+          "value": restaurant.get('id')
+        },
+        {
+          "name": DISLIKE_ACTION_NAME,
+          "text": "hate :( :( ",
+          "type": "button",
+          "value": restaurant.get('id')
+        },
       ],
       'callback_id': 'lunch-spinner',
       'replace_original': 'true'

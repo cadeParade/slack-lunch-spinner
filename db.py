@@ -16,7 +16,7 @@ def get_preferences(channel_id):
   return db.child('channels').child(channel_id).child('preferences').get().val()
 
 def set_preferences(channel_id, preferences):
-  db.child("channels").child(channel_id).child('preferences').set(preferences)
+  db.child('channels').child(channel_id).child('preferences').update(preferences)
 
 def add_channel(channel_id, team_id):
   db.child('channels').child(channel_id).set({'team_id': team_id})
@@ -30,18 +30,11 @@ def get_restaurants(channel_id):
 def set_restaurants(channel_id, restaurants):
   return db.child('channels').child(channel_id).child('restaurants').set(restaurants);
 
+def set_favorite(channel_id, restaurant_id):
+  return db.child('channels').child(channel_id).child('restaurant_preferences').update({restaurant_id: 1})
 
-# TODO name this better
-def add_settings(channel_id, settings):
-  prev_preferences = get_preferences(channel_id) or {}
+def set_dislike(channel_id, restaurant_id):
+  return db.child('channels').child(channel_id).child('restaurant_preferences').update({restaurant_id: -1})
 
-  # merge old and new preferences
-  # new takes precedence
-  new_preferences = {}
-  new_preferences.update(prev_preferences)
-  new_preferences.update(settings)
-
-  set_preferences(channel_id, new_preferences)
-  return new_preferences
-
-
+def get_restaurant_preferences(channel_id):
+  return db.child('channels').child(channel_id).child('restaurant_preferences').get().val()
