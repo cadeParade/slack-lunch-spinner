@@ -8,20 +8,11 @@ from yelp_requests import refresh_business_list, yelp_request
 from lunch_settings import parse_valid_settings
 import db
 
-# user sends request
-# if so, check if channel exists AND has preferences
-# if no, add channel to db and prompt them to set preferences
-# if yes, do the choice with channel's preferences
-
-
-# create the application object
 app = Flask(__name__)
 
 @app.route('/choice', methods=['GET', 'POST'])
 def choose():
   form_data = request.form
-  # # TODO take out this string literal
-  # channel_id = 'C8KRF1KAB'
   channel_id = form_data.get('channel_id') or json.loads(form_data.get('payload'))['channel']['id']
   channel = db.get_channel(channel_id)
 
@@ -56,10 +47,12 @@ def parse_args(channel_id, args):
 
 def add_channel(channel_id, team_id):
   db.add_channel(channel_id, team_id)
-  return ("It looks like you haven't used lunch-spinner before in this channel.\n" +
-      "We need to set up some preferences. These preferences will be used for any lunch request in this channel.\n"
-      "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
-      "To enter preferences, type `/lunch setup lat=23432 lon=20394 radius=500` ... etc")
+  return (
+    "It looks like you haven't used lunch-spinner before in this channel.\n" +
+    "Type `/lunch setup lat=23432 lon=20394 radius=500` ... etc to set up this channel" +
+    "These preferences will be used for any lunch request in this channel.\n"
+    "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
+  )
 
 def get_restaurants(channel_id):
   businesses = refresh_business_list(db.get_preferences(channel_id))
@@ -83,6 +76,7 @@ def retrieve_businesses_from_file():
 
 def build_slack_response(restaurant):
   return {
+    "response_type": "in_channel",
     'attachments': [{
       'fallback': restaurant.get('name'),
       'color': '#9500c7',
