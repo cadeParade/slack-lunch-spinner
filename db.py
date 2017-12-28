@@ -33,7 +33,7 @@ def set_restaurants(channel_id, restaurants):
 
 # TODO name this better
 def add_settings(channel_id, settings):
-  prev_preferences = get_preferences(channel_id)
+  prev_preferences = get_preferences(channel_id) or {}
 
   # merge old and new preferences
   # new takes precedence

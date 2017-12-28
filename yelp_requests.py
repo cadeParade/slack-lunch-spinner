@@ -92,9 +92,9 @@ def refresh_business_list(preferences):
       'term': 'lunch',
       'price': '1,2',
       'limit': 1,
-      'latitude': float(preferences['lat']),
-      'longitude': float(preferences['lon']),
-      'radius': int(preferences['radius']) or 800,
+      'latitude': preferences['lat'],
+      'longitude': preferences['lon'],
+      'radius': preferences.get('radius') or 800,
     }
 
     businesses = []

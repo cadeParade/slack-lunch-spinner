@@ -26,11 +26,11 @@ def choose():
   channel = db.get_channel(channel_id)
 
   if not channel:
-    return add_channel(form_data.get('team_id'))
+    return add_channel(channel_id, form_data.get('team_id'))
 
   args = form_data.get('text')
   if args:
-    return parse_args(args)
+    return parse_args(channel_id, args)
 
   if not db.get_restaurants(channel_id):
     get_restaurants(channel_id)
@@ -40,7 +40,7 @@ def choose():
   return jsonify(build_slack_response(restaurant))
 
 
-def parse_args(args):
+def parse_args(channel_id, args):
   args = args.split(' ')
 
   if args[0] == 'preferences':
@@ -54,14 +54,14 @@ def parse_args(args):
     return "We've set your preference to %s \n Your settings are now: %s" % (new_valid_settings, all_settings)
 
 
-def add_channel(channel):
+def add_channel(channel_id, team_id):
   db.add_channel(channel_id, team_id)
   return ("It looks like you haven't used lunch-spinner before in this channel.\n" +
       "We need to set up some preferences. These preferences will be used for any lunch request in this channel.\n"
       "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
       "To enter preferences, type `/lunch setup lat=23432 lon=20394 radius=500` ... etc")
 
-def get_restarurants(channel_id):
+def get_restaurants(channel_id):
   businesses = refresh_business_list(db.get_preferences(channel_id))
   db.set_restaurants(channel_id, businesses)
 
