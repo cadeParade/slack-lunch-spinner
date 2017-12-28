@@ -100,7 +100,10 @@ def refresh_business_list(preferences):
     businesses = []
 
     initial_query = yelp_request(YELP_API_HOST, SEARCH_PATH, url_params=url_params)
-    num_businesses = initial_query['total']
+
+    # don't ask for more than 1000 businesses, even if there are more than 1000
+    num_businesses = 1000 if initial_query['total'] < 1000 else initial_query['total']
+
 
     x = divmod(num_businesses, SEARCH_LIMIT)
     full_requests = x[0]
@@ -127,12 +130,3 @@ def refresh_business_list(preferences):
       business_dict[business['id']] = business
 
     return business_dict
-    # with open('restaurant_data.txt', 'w') as outfile:
-    #   json.dump(businesses, outfile)
-
-
-
-
-# start the server with the 'run()' method
-if __name__ == '__main__':
-    app.run(debug=True)

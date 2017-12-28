@@ -62,18 +62,6 @@ def choose_random_restaurant(businesses):
   restaurant_id = random.choice(list(dict(businesses).keys()))
   return businesses[restaurant_id]
 
-
-def retrieve_close_businesses_from_file():
-    json_data=open('close_restaurants.txt').read()
-    data = json.loads(json_data)
-    return data
-
-
-def retrieve_businesses_from_file():
-    json_data=open('restaurant_data.txt').read()
-    data = json.loads(json_data)
-    return data
-
 def build_slack_response(restaurant):
   return {
     "response_type": "in_channel",
