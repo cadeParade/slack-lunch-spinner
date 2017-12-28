@@ -51,7 +51,7 @@ def add_channel(channel_id, team_id):
     "It looks like you haven't used lunch-spinner before in this channel.\n" +
     "Type `/lunch setup lat=23432 lon=20394 radius=500` ... etc to set up this channel" +
     "These preferences will be used for any lunch request in this channel.\n"
-    "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n " +
+    "Preference options are: \n *Lat* (requrired) \n *Lon* (required) \n *Radius from location* (Optional: default is 900m) \n "
   )
 
 def get_restaurants(channel_id):
