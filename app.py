@@ -50,7 +50,7 @@ def choose():
 
 
 def filter_and_enrich_business_list(channel_id, businesses):
-  restaurant_preferences = db.get_restaurant_preferences(channel_id)
+  restaurant_preferences = db.get_restaurant_preferences(channel_id) or {}
   enriched_restaurant_ids = []
   for k,v in restaurant_preferences.items():
     if v == -1:
